@@ -48,8 +48,6 @@ export class CopyBara {
   }
 
   private async exec(dockerParams: string[] = [], copybaraOptions: string[] = []): Promise<number> {
-    const cbOptions = !copybaraOptions.length ? [] : [`-e`, `COPYBARA_OPTIONS=${copybaraOptions.join(" ")}`];
-
     const execExitCode = await exec(
       `docker`,
       [
@@ -69,9 +67,9 @@ export class CopyBara {
         `-e`,
         `COPYBARA_CONFIG=/root/copy.bara.sky`,
         ...dockerParams,
-        ...cbOptions,
         this.image.name,
         "copybara",
+        ...copybaraOptions,
       ],
       {
         ignoreReturnCode: true,
