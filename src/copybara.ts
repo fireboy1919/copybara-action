@@ -1,4 +1,5 @@
 import { exec } from "@actions/exec";
+import { pathExistsSync } from "fs-extra";
 import { copyBaraSky } from "./copy.bara.sky.js";
 import { exitCodes } from "./exit.js";
 import { hostConfig } from "./hostConfig.js";
@@ -48,29 +49,35 @@ export class CopyBara {
   }
 
   private async exec(dockerParams: string[] = [], copybaraOptions: string[] = []): Promise<number> {
-    const execExitCode = await exec(
-      `docker`,
-      [
-        "run",
-        `-v`,
-        `${process.cwd()}:/usr/src/app`,
-        `-v`,
-        `${hostConfig.sshKeyPath}:/root/.ssh/id_rsa`,
-        `-v`,
-        `${hostConfig.knownHostsPath}:/root/.ssh/known_hosts`,
-        `-v`,
-        `${hostConfig.cbConfigPath}:/root/copy.bara.sky`,
-        `-v`,
-        `${hostConfig.gitConfigPath}:/root/.gitconfig`,
-        `-v`,
-        `${hostConfig.gitCredentialsPath}:/root/.git-credentials`,
-        `-e`,
-        `COPYBARA_CONFIG=/root/copy.bara.sky`,
-        ...dockerParams,
-        this.image.name,
-        "copybara",
-        ...copybaraOptions,
-      ],
+    const dockerArgs = [
+      "run",
+      `-v`,
+      `${process.cwd()}:/usr/src/app`,
+    ];
+
+    // Only mount SSH key if it exists
+    if (pathExistsSync(hostConfig.sshKeyPath)) {
+      dockerArgs.push(`-v`, `${hostConfig.sshKeyPath}:/root/.ssh/id_rsa`);
+    }
+
+    dockerArgs.push(
+      `-v`,
+      `${hostConfig.knownHostsPath}:/root/.ssh/known_hosts`,
+      `-v`,
+      `${hostConfig.cbConfigPath}:/root/copy.bara.sky`,
+      `-v`,
+      `${hostConfig.gitConfigPath}:/root/.gitconfig`,
+      `-v`,
+      `${hostConfig.gitCredentialsPath}:/root/.git-credentials`,
+      `-e`,
+      `COPYBARA_CONFIG=/root/copy.bara.sky`,
+      ...dockerParams,
+      this.image.name,
+      "copybara",
+      ...copybaraOptions,
+    );
+
+    const execExitCode = await exec(`docker`, dockerArgs,
       {
         ignoreReturnCode: true,
       },
