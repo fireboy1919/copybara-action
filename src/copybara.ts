@@ -68,6 +68,9 @@ export class CopyBara {
       dockerArgs.push(`-v`, `${hostConfig.sshKeyPath}:/root/.ssh/id_rsa`);
     }
 
+    // Check if copybara_options contains a config file path (user is providing full command)
+    const hasConfigInOptions = copybaraOptions.some(opt => opt.includes(".bara.sky"));
+
     dockerArgs.push(
       `-v`,
       `${hostConfig.knownHostsPath}:/root/.ssh/known_hosts`,
@@ -77,8 +80,14 @@ export class CopyBara {
       `${hostConfig.gitConfigPath}:/root/.gitconfig`,
       `-v`,
       `${hostConfig.gitCredentialsPath}:/root/.git-credentials`,
-      `-e`,
-      `COPYBARA_CONFIG=/root/copy.bara.sky`,
+    );
+
+    // Only set COPYBARA_CONFIG if user isn't providing config file in options
+    if (!hasConfigInOptions) {
+      dockerArgs.push(`-e`, `COPYBARA_CONFIG=/root/copy.bara.sky`);
+    }
+
+    dockerArgs.push(
       ...dockerParams,
       this.image.name,
       "copybara",
